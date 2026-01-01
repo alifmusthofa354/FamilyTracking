@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import cafe.adriel.voyager.navigator.Navigator
-import com.example.familytracking.ui.screens.HomeScreen
+import com.example.familytracking.presentation.main.MainScreen
 import com.example.familytracking.ui.theme.FamilyTrackingTheme
 
 class MainActivity : ComponentActivity() {
@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             FamilyTrackingTheme {
-                Navigator(HomeScreen())
+                Navigator(MainScreen())
             }
         }
     }
