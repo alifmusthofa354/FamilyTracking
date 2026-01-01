@@ -4,5 +4,6 @@ import com.example.familytracking.domain.model.User
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
-    fun getUserProfile(): Flow<User>
+    fun getUserProfile(): Flow<User?>
+    suspend fun saveUser(user: User)
 }

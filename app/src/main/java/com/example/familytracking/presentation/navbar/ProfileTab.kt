@@ -39,7 +39,10 @@ object ProfileTab : Tab {
                 context,
                 ProfileEntryPoint::class.java
             )
-            ProfileViewModel(entryPoint.getUserUseCase())
+            ProfileViewModel(
+                getUserUseCase = entryPoint.getUserUseCase(),
+                createUserUseCase = entryPoint.createUserUseCase()
+            )
         }
         ProfileScreen(screenModel)
     }
