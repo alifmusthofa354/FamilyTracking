@@ -1,6 +1,8 @@
 package com.example.familytracking.di
 
+import com.example.familytracking.data.repository.SessionRepositoryImpl
 import com.example.familytracking.data.repository.UserRepositoryImpl
+import com.example.familytracking.domain.repository.SessionRepository
 import com.example.familytracking.domain.repository.UserRepository
 import dagger.Binds
 import dagger.Module
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindUserRepository(
         userRepositoryImpl: UserRepositoryImpl
     ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSessionRepository(
+        sessionRepositoryImpl: SessionRepositoryImpl
+    ): SessionRepository
 }
