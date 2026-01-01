@@ -41,7 +41,6 @@ object ProfileTab : Tab {
             )
             ProfileViewModel(
                 getUserUseCase = entryPoint.getUserUseCase(),
-                createUserUseCase = entryPoint.createUserUseCase(),
                 updateUserUseCase = entryPoint.updateUserUseCase()
             )
         }

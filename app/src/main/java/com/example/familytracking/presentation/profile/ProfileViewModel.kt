@@ -3,7 +3,6 @@ package com.example.familytracking.presentation.profile
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.example.familytracking.domain.model.User
-import com.example.familytracking.domain.usecase.CreateUserUseCase
 import com.example.familytracking.domain.usecase.GetUserUseCase
 import com.example.familytracking.domain.usecase.UpdateUserUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +13,6 @@ import javax.inject.Inject
 
 class ProfileViewModel @Inject constructor(
     private val getUserUseCase: GetUserUseCase,
-    private val createUserUseCase: CreateUserUseCase,
     private val updateUserUseCase: UpdateUserUseCase
 ) : ScreenModel {
 
@@ -45,13 +43,8 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun createAccount(name: String, email: String) {
-        screenModelScope.launch {
-            try {
-                createUserUseCase(name, email)
-            } catch (e: Exception) {
-                _userState.value = UserState.Error("Failed to create account: ${e.message}")
-            }
-        }
+        // Feature moved to Register Screen
+        _userState.value = UserState.Error("Please use the Register screen to create an account.")
     }
 
     fun startEditing() {

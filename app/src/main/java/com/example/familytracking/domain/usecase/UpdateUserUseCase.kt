@@ -9,6 +9,6 @@ class UpdateUserUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(id: String, name: String, email: String) {
         val user = User(id = id, name = name, email = email)
-        userRepository.saveUser(user)
+        userRepository.updateProfile(user)
     }
 }

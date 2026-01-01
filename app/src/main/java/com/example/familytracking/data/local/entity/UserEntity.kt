@@ -8,7 +8,8 @@ import com.example.familytracking.domain.model.User
 data class UserEntity(
     @PrimaryKey val id: String,
     val name: String,
-    val email: String
+    val email: String,
+    val password: String
 ) {
     fun toDomain(): User {
         return User(
