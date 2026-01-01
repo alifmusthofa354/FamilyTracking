@@ -3,6 +3,7 @@ package com.example.familytracking.presentation.profile
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.example.familytracking.domain.model.User
+import com.example.familytracking.domain.usecase.ClearSessionUseCase
 import com.example.familytracking.domain.usecase.GetUserUseCase
 import com.example.familytracking.domain.usecase.UpdateUserUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,8 @@ import javax.inject.Inject
 
 class ProfileViewModel @Inject constructor(
     private val getUserUseCase: GetUserUseCase,
-    private val updateUserUseCase: UpdateUserUseCase
+    private val updateUserUseCase: UpdateUserUseCase,
+    private val clearSessionUseCase: ClearSessionUseCase
 ) : ScreenModel {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Loading)
@@ -33,12 +35,21 @@ class ProfileViewModel @Inject constructor(
                         val currentEditing = (_userState.value as? UserState.Success)?.isEditing ?: false
                         _userState.value = UserState.Success(user, currentEditing)
                     } else {
+                        // If no user found via session (or session cleared), we might reach here
+                         // If session is cleared, GetUserUseCase should return null.
                         _userState.value = UserState.Empty
                     }
                 }
             } catch (e: Exception) {
                 _userState.value = UserState.Error(e.message ?: "Unknown error")
             }
+        }
+    }
+
+    fun logout() {
+        screenModelScope.launch {
+            clearSessionUseCase()
+            _userState.value = UserState.LoggedOut
         }
     }
 
@@ -79,6 +90,7 @@ class ProfileViewModel @Inject constructor(
 sealed class UserState {
     data object Loading : UserState()
     data object Empty : UserState()
+    data object LoggedOut : UserState()
     data class Success(val user: User, val isEditing: Boolean = false) : UserState()
     data class Error(val message: String) : UserState()
 }

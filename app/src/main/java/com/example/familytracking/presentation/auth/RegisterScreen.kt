@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.example.familytracking.di.AuthEntryPoint
+import com.example.familytracking.presentation.main.MainScreen
 import dagger.hilt.android.EntryPointAccessors
 
 class RegisterScreen : Screen {
@@ -40,6 +42,13 @@ class RegisterScreen : Screen {
             EntryPointAccessors.fromApplication(context, AuthEntryPoint::class.java).authViewModel()
         }
         val state by viewModel.state.collectAsState()
+
+        LaunchedEffect(state) {
+            if (state is AuthState.Success) {
+                navigator.replaceAll(MainScreen())
+                viewModel.resetState()
+            }
+        }
 
         var name by remember { mutableStateOf("") }
         var email by remember { mutableStateOf("") }

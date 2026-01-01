@@ -24,9 +24,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.runtime.LaunchedEffect
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import com.example.familytracking.presentation.auth.LoginScreen
+
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel) {
     val state by viewModel.userState.collectAsState()
+    val navigator = LocalNavigator.currentOrThrow
+
+    LaunchedEffect(state) {
+        if (state is UserState.LoggedOut) {
+            navigator.replaceAll(LoginScreen())
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -37,9 +49,10 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                 CircularProgressIndicator()
             }
             is UserState.Empty -> {
-                CreateAccountContent(onCreateAccount = { name, email ->
-                    viewModel.createAccount(name, email)
-                })
+                // Empty state logic (redirect to login or show simplified view)
+                // For now keeping CreateAccountContent but it might be unreachable if auth is enforced
+                CreateAccountContent(onCreateAccount = { _, _ -> }) 
+                // Suggest redirecting to login instead
             }
             is UserState.Success -> {
                 if (currentState.isEditing) {
@@ -53,9 +66,13 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                     ViewProfileContent(
                         name = currentState.user.name,
                         email = currentState.user.email,
-                        onEdit = { viewModel.startEditing() }
+                        onEdit = { viewModel.startEditing() },
+                        onLogout = { viewModel.logout() }
                     )
                 }
+            }
+            is UserState.LoggedOut -> {
+                 // Handled by LaunchedEffect
             }
             is UserState.Error -> {
                 Text(
@@ -68,7 +85,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
 }
 
 @Composable
-fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit) {
+fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit, onLogout: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(16.dp)
@@ -89,6 +106,10 @@ fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onEdit) {
             Text("Edit Profile")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedButton(onClick = onLogout) {
+            Text("Logout")
         }
     }
 }
