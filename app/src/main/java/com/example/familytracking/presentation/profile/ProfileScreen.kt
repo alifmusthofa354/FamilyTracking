@@ -2,13 +2,16 @@ package com.example.familytracking.presentation.profile
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,22 +42,18 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                 })
             }
             is UserState.Success -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Profile",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(bottom = 24.dp)
+                if (currentState.isEditing) {
+                    EditProfileContent(
+                        initialName = currentState.user.name,
+                        initialEmail = currentState.user.email,
+                        onSave = { name, email -> viewModel.updateUser(name, email) },
+                        onCancel = { viewModel.cancelEditing() }
                     )
-                    Text(
-                        text = "Name: ${currentState.user.name}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = "Email: ${currentState.user.email}",
-                        style = MaterialTheme.typography.bodyLarge
+                } else {
+                    ViewProfileContent(
+                        name = currentState.user.name,
+                        email = currentState.user.email,
+                        onEdit = { viewModel.startEditing() }
                     )
                 }
             }
@@ -63,6 +62,78 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                     text = "Error: ${currentState.message}",
                     color = MaterialTheme.colorScheme.error
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(
+            text = "Profile",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+        Text(
+            text = "Name: $name",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = "Email: $email",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onEdit) {
+            Text("Edit Profile")
+        }
+    }
+}
+
+@Composable
+fun EditProfileContent(
+    initialName: String,
+    initialEmail: String,
+    onSave: (String, String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var email by remember { mutableStateOf(initialEmail) }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(
+            text = "Edit Profile",
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row {
+            OutlinedButton(onClick = onCancel) {
+                Text("Cancel")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = { onSave(name, email) },
+                enabled = name.isNotBlank() && email.isNotBlank()
+            ) {
+                Text("Save Changes")
             }
         }
     }
