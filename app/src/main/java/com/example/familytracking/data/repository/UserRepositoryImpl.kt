@@ -47,7 +47,13 @@ class UserRepositoryImpl @Inject constructor(
             }
             val id = UUID.randomUUID().toString()
             val hashedPassword = SecurityUtils.hashPassword(password)
-            val entity = UserEntity(id, name, email, hashedPassword)
+            val entity = UserEntity(
+                id = id, 
+                name = name, 
+                email = email, 
+                password = hashedPassword,
+                profilePicturePath = null
+            )
             userDao.insertUser(entity)
             Resource.Success(entity.toDomain())
         } catch (e: Exception) {
@@ -64,7 +70,8 @@ class UserRepositoryImpl @Inject constructor(
             
             val updatedEntity = existing.copy(
                 name = user.name,
-                email = user.email
+                email = user.email,
+                profilePicturePath = user.profilePicturePath
                 // Password remains hashed from existing entity
             )
             userDao.insertUser(updatedEntity)

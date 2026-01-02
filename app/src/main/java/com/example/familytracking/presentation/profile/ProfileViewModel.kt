@@ -78,11 +78,11 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateUser(name: String, email: String) {
+    fun updateUser(name: String, email: String, profilePicturePath: String?) {
         val currentState = _userState.value
         if (currentState is UserState.Success) {
             screenModelScope.launch {
-                when (val result = updateUserUseCase(currentState.user.id, name, email)) {
+                when (val result = updateUserUseCase(currentState.user.id, name, email, profilePicturePath)) {
                     is Resource.Success -> {
                         _userState.value = currentState.copy(isEditing = false)
                     }

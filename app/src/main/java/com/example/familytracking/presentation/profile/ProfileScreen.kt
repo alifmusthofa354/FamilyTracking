@@ -1,7 +1,12 @@
 package com.example.familytracking.presentation.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,17 +34,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.familytracking.R
+import com.example.familytracking.core.utils.FileStorageUtils
 import com.example.familytracking.presentation.auth.LoginScreen
+import java.io.File
 
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel) {
     val state by viewModel.userState.collectAsState()
     val navigator = LocalNavigator.currentOrThrow
+    val context = LocalContext.current
 
     LaunchedEffect(state) {
         if (state is UserState.LoggedOut) {
@@ -63,13 +74,17 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                     EditProfileContent(
                         initialName = currentState.user.name,
                         initialEmail = currentState.user.email,
-                        onSave = { name, email -> viewModel.updateUser(name, email) },
+                        initialProfilePath = currentState.user.profilePicturePath,
+                        onSave = { name, email, newPath -> 
+                             viewModel.updateUser(name, email, newPath)
+                        },
                         onCancel = { viewModel.cancelEditing() }
                     )
                 } else {
                     ViewProfileContent(
                         name = currentState.user.name,
                         email = currentState.user.email,
+                        profilePath = currentState.user.profilePicturePath,
                         onEdit = { viewModel.startEditing() },
                         onLogout = { viewModel.logout() }
                     )
@@ -89,7 +104,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
 }
 
 @Composable
-fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit, onLogout: () -> Unit) {
+fun ViewProfileContent(name: String, email: String, profilePath: String?, onEdit: () -> Unit, onLogout: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(16.dp)
@@ -100,15 +115,7 @@ fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit, onLogout
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        Image(
-            painter = painterResource(id = R.drawable.ic_profile),
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-            contentScale = ContentScale.Crop
-        )
+        ProfileImage(path = profilePath, size = 120.dp)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -135,11 +142,27 @@ fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit, onLogout
 fun EditProfileContent(
     initialName: String,
     initialEmail: String,
-    onSave: (String, String) -> Unit,
+    initialProfilePath: String?,
+    onSave: (String, String, String?) -> Unit,
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
     var email by remember { mutableStateOf(initialEmail) }
+    var profilePath by remember { mutableStateOf(initialProfilePath) }
+    
+    val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                // Save to internal storage immediately to get a path
+                val savedPath = FileStorageUtils.saveImageToInternalStorage(context, uri)
+                if (savedPath != null) {
+                    profilePath = savedPath
+                }
+            }
+        }
+    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -152,15 +175,12 @@ fun EditProfileContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.ic_profile),
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
-            contentScale = ContentScale.Crop
-        )
+        Box(modifier = Modifier.clickable { 
+            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }) {
+            ProfileImage(path = profilePath, size = 100.dp, isEditable = true)
+        }
+        Text(text = "Tap to change photo", style = MaterialTheme.typography.labelSmall)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -182,7 +202,7 @@ fun EditProfileContent(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
-                onClick = { onSave(name, email) },
+                onClick = { onSave(name, email, profilePath) },
                 enabled = name.isNotBlank() && email.isNotBlank()
             ) {
                 Text("Save Changes")
@@ -190,6 +210,31 @@ fun EditProfileContent(
         }
     }
 }
+
+@Composable
+fun ProfileImage(path: String?, size: androidx.compose.ui.unit.Dp, isEditable: Boolean = false) {
+    val model = if (path != null) File(path) else R.drawable.ic_profile
+    
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(model)
+            .crossfade(true)
+            .build(),
+        placeholder = painterResource(R.drawable.ic_profile),
+        error = painterResource(R.drawable.ic_profile),
+        contentDescription = "Profile Picture",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .border(
+                width = if (isEditable) 3.dp else 2.dp, 
+                color = if (isEditable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary, 
+                shape = CircleShape
+            )
+    )
+}
+
 
 @Composable
 fun CreateAccountContent(onCreateAccount: (String, String) -> Unit) {

@@ -9,13 +9,15 @@ data class UserEntity(
     @PrimaryKey val id: String,
     val name: String,
     val email: String,
-    val password: String
+    val password: String,
+    val profilePicturePath: String? = null
 ) {
     fun toDomain(): User {
         return User(
             id = id,
             name = name,
-            email = email
+            email = email,
+            profilePicturePath = profilePicturePath
         )
     }
 }
