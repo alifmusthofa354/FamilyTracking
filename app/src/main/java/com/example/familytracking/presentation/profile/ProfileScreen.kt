@@ -1,5 +1,7 @@
 package com.example.familytracking.presentation.profile
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,7 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +19,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,11 +27,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-
-import androidx.compose.runtime.LaunchedEffect
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.example.familytracking.R
 import com.example.familytracking.presentation.auth.LoginScreen
 
 @Composable
@@ -36,8 +43,6 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
 
     LaunchedEffect(state) {
         if (state is UserState.LoggedOut) {
-            // We are inside a TabNavigator, so 'navigator' refers to the TabNavigator.
-            // We need to access the parent (Root Navigator) to replace the MainScreen.
             navigator.parent?.replaceAll(LoginScreen())
         }
     }
@@ -51,10 +56,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                 CircularProgressIndicator()
             }
             is UserState.Empty -> {
-                // Empty state logic (redirect to login or show simplified view)
-                // For now keeping CreateAccountContent but it might be unreachable if auth is enforced
-                CreateAccountContent(onCreateAccount = { _, _ -> }) 
-                // Suggest redirecting to login instead
+                CreateAccountContent(onCreateAccount = { _, _ -> })
             }
             is UserState.Success -> {
                 if (currentState.isEditing) {
@@ -74,7 +76,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                 }
             }
             is UserState.LoggedOut -> {
-                 // Handled by LaunchedEffect
+                // Handled by LaunchedEffect
             }
             is UserState.Error -> {
                 Text(
@@ -97,6 +99,19 @@ fun ViewProfileContent(name: String, email: String, onEdit: () -> Unit, onLogout
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 24.dp)
         )
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_profile),
+            contentDescription = "Profile Picture",
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Text(
             text = "Name: $name",
             style = MaterialTheme.typography.bodyLarge
@@ -134,7 +149,21 @@ fun EditProfileContent(
             text = "Edit Profile",
             style = MaterialTheme.typography.headlineSmall
         )
+
         Spacer(modifier = Modifier.height(16.dp))
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_profile),
+            contentDescription = "Profile Picture",
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
@@ -175,7 +204,21 @@ fun CreateAccountContent(onCreateAccount: (String, String) -> Unit) {
             text = "No Profile Found",
             style = MaterialTheme.typography.headlineSmall
         )
+
         Spacer(modifier = Modifier.height(16.dp))
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_profile),
+            contentDescription = "Profile Picture",
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
