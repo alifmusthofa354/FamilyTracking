@@ -30,6 +30,7 @@ import kotlinx.coroutines.withContext
 fun HomeScreen(viewModel: HomeViewModel) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
+    val currentLocation by viewModel.currentLocation.collectAsState()
     
     // Load Profile Bitmap
     val userMarkerBitmap by produceState<Bitmap?>(initialValue = null, currentUser) {
@@ -56,21 +57,29 @@ fun HomeScreen(viewModel: HomeViewModel) {
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             hasLocationPermission = isGranted
+            if (isGranted) {
+                viewModel.startLocationUpdates()
+            }
         }
     )
 
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            viewModel.startLocationUpdates()
         }
     }
+    
+    // Stop updates when leaving screen (optional, depending on requirement)
+    // LaunchedEffect(Unit) { onDispose { viewModel.stopLocationUpdates() } }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         OSMMapView(
             modifier = Modifier.fillMaxSize(),
-            enableUserLocation = hasLocationPermission,
+            userLocation = currentLocation,
             userIcon = userMarkerBitmap
         )
         
