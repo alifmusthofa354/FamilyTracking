@@ -24,6 +24,9 @@ class HomeViewModel @Inject constructor(
     private val _currentLocation = MutableStateFlow<LocationModel?>(null)
     val currentLocation: StateFlow<LocationModel?> = _currentLocation.asStateFlow()
 
+    private val _isFollowingUser = MutableStateFlow(true)
+    val isFollowingUser: StateFlow<Boolean> = _isFollowingUser.asStateFlow()
+
     private var locationJob: Job? = null
 
     init {
@@ -51,5 +54,13 @@ class HomeViewModel @Inject constructor(
     fun stopLocationUpdates() {
         locationJob?.cancel()
         locationJob = null
+    }
+
+    fun startFollowingUser() {
+        _isFollowingUser.value = true
+    }
+
+    fun stopFollowingUser() {
+        _isFollowingUser.value = false
     }
 }

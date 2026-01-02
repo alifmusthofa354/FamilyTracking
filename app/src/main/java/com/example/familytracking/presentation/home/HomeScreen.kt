@@ -7,6 +7,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.familytracking.R
 import com.example.familytracking.core.utils.BitmapUtils
@@ -31,6 +37,7 @@ fun HomeScreen(viewModel: HomeViewModel) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val currentLocation by viewModel.currentLocation.collectAsState()
+    val isFollowingUser by viewModel.isFollowingUser.collectAsState()
     
     // Load Profile Bitmap
     val userMarkerBitmap by produceState<Bitmap?>(initialValue = null, currentUser) {
@@ -71,23 +78,36 @@ fun HomeScreen(viewModel: HomeViewModel) {
         }
     }
     
-    // Stop updates when leaving screen (optional, depending on requirement)
-    // LaunchedEffect(Unit) { onDispose { viewModel.stopLocationUpdates() } }
-
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         OSMMapView(
             modifier = Modifier.fillMaxSize(),
             userLocation = currentLocation,
-            userIcon = userMarkerBitmap
+            userIcon = userMarkerBitmap,
+            isFollowingUser = isFollowingUser,
+            onMapInteraction = { viewModel.stopFollowingUser() }
         )
         
         if (!hasLocationPermission) {
-            // Optional: Show a message or button if permission denied
              Box(modifier = Modifier.align(Alignment.Center)) {
                  Text("Location permission required to show your position.")
              }
+        }
+
+        // Floating Action Button to Recenter
+        if (hasLocationPermission && !isFollowingUser) {
+            FloatingActionButton(
+                onClick = { viewModel.startFollowingUser() },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Recenter Map"
+                )
+            }
         }
     }
 }

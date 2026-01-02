@@ -23,6 +23,8 @@ fun OSMMapView(
     modifier: Modifier = Modifier,
     userLocation: LocationModel? = null,
     userIcon: Bitmap? = null,
+    isFollowingUser: Boolean = true,
+    onMapInteraction: () -> Unit = {},
     onMapReady: (MapView) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -34,8 +36,18 @@ fun OSMMapView(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(18.0)
-            // Default initial center (e.g. Jakarta) before first GPS fix
             controller.setCenter(GeoPoint(-6.2088, 106.8456)) 
+            
+            // Detect user interaction to disable auto-follow
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN, 
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        onMapInteraction()
+                    }
+                }
+                false // Let the map handle the touch event
+            }
         }
     }
 
@@ -43,19 +55,18 @@ fun OSMMapView(
     val userMarker = remember(mapView) {
         Marker(mapView).apply {
             title = "Me"
-            // Set Anchor to Bottom Center for Pin accuracy
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
     }
 
-    // 3. Update Marker Position & Icon with Smooth Camera Animation
-    LaunchedEffect(userLocation, userIcon) {
-        // Update Icon if changed
+    // 3. Update Marker Position & Icon with Conditional Camera Animation
+    LaunchedEffect(userLocation, userIcon, isFollowingUser) {
+        // Update Icon
         if (userIcon != null) {
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
         }
 
-        // Update Position and Camera
+        // Update Position
         if (userLocation != null) {
             val point = GeoPoint(userLocation.latitude, userLocation.longitude)
             userMarker.position = point
@@ -64,9 +75,10 @@ fun OSMMapView(
                 mapView.overlays.add(userMarker)
             }
             
-            // UX FIX: Use animateTo for smooth camera movement instead of setCenter
-            // This prevents "teleporting" and gives better orientation
-            mapView.controller.animateTo(point)
+            // Only animate/follow if enabled
+            if (isFollowingUser) {
+                mapView.controller.animateTo(point)
+            }
         } else {
             mapView.overlays.remove(userMarker)
         }
