@@ -8,10 +8,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.familytracking.domain.model.LocationModel
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -34,39 +34,40 @@ fun OSMMapView(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(18.0)
+            // Default initial center (e.g. Jakarta) before first GPS fix
             controller.setCenter(GeoPoint(-6.2088, 106.8456)) 
         }
     }
 
-    // 2. Create Marker Instance (Persist across recompositions)
+    // 2. Create Marker Instance
     val userMarker = remember(mapView) {
         Marker(mapView).apply {
             title = "Me"
+            // Set Anchor to Bottom Center for Pin accuracy
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
     }
 
-    // 3. Update Marker Position & Icon
+    // 3. Update Marker Position & Icon with Smooth Camera Animation
     LaunchedEffect(userLocation, userIcon) {
-        // Update Icon
+        // Update Icon if changed
         if (userIcon != null) {
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
         }
 
-        // Update Position
+        // Update Position and Camera
         if (userLocation != null) {
             val point = GeoPoint(userLocation.latitude, userLocation.longitude)
             userMarker.position = point
             
-            // Add marker if not already present
             if (!mapView.overlays.contains(userMarker)) {
                 mapView.overlays.add(userMarker)
             }
             
-            // Auto-center map (Follow Mode) - Optional, can be made toggleable
+            // UX FIX: Use animateTo for smooth camera movement instead of setCenter
+            // This prevents "teleporting" and gives better orientation
             mapView.controller.animateTo(point)
         } else {
-            // Remove marker if location unavailable
             mapView.overlays.remove(userMarker)
         }
         
