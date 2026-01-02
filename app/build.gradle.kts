@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.osmdroid.android)
     implementation(libs.play.services.location)
+    implementation(libs.socket.io.client)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

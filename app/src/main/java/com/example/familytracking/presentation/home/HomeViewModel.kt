@@ -6,6 +6,7 @@ import com.example.familytracking.domain.model.LocationModel
 import com.example.familytracking.domain.model.User
 import com.example.familytracking.domain.usecase.GetLocationUpdatesUseCase
 import com.example.familytracking.domain.usecase.GetUserUseCase
+import com.example.familytracking.domain.usecase.SendLocationUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
 
 class HomeViewModel @Inject constructor(
     private val getUserUseCase: GetUserUseCase,
-    private val getLocationUpdatesUseCase: GetLocationUpdatesUseCase
+    private val getLocationUpdatesUseCase: GetLocationUpdatesUseCase,
+    private val sendLocationUseCase: SendLocationUseCase
 ) : ScreenModel {
     
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -31,6 +33,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         fetchUser()
+        sendLocationUseCase.connect() // Connect to socket
     }
 
     private fun fetchUser() {
@@ -47,6 +50,17 @@ class HomeViewModel @Inject constructor(
         locationJob = screenModelScope.launch {
             getLocationUpdatesUseCase().collect { location ->
                 _currentLocation.value = location
+                
+                // Send location to server
+                val user = _currentUser.value
+                if (user != null) {
+                    sendLocationUseCase(
+                        id = user.id,
+                        name = user.name,
+                        lat = location.latitude,
+                        lng = location.longitude
+                    )
+                }
             }
         }
     }
@@ -62,5 +76,10 @@ class HomeViewModel @Inject constructor(
 
     fun stopFollowingUser() {
         _isFollowingUser.value = false
+    }
+
+    override fun onDispose() {
+        super.onDispose()
+        sendLocationUseCase.disconnect() // Cleanup socket
     }
 }
