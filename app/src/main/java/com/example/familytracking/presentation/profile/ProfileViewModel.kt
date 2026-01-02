@@ -2,6 +2,7 @@ package com.example.familytracking.presentation.profile
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import com.example.familytracking.core.common.Resource
 import com.example.familytracking.domain.model.User
 import com.example.familytracking.domain.usecase.ClearSessionUseCase
 import com.example.familytracking.domain.usecase.GetUserUseCase
@@ -81,11 +82,14 @@ class ProfileViewModel @Inject constructor(
         val currentState = _userState.value
         if (currentState is UserState.Success) {
             screenModelScope.launch {
-                try {
-                    updateUserUseCase(currentState.user.id, name, email)
-                    _userState.value = currentState.copy(isEditing = false)
-                } catch (e: Exception) {
-                    _userState.value = UserState.Error("Failed to update profile: ${e.message}")
+                when (val result = updateUserUseCase(currentState.user.id, name, email)) {
+                    is Resource.Success -> {
+                        _userState.value = currentState.copy(isEditing = false)
+                    }
+                    is Resource.Error -> {
+                        _userState.value = UserState.Error("Failed to update profile: ${result.message}")
+                    }
+                    else -> {}
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.example.familytracking.data.repository
 
+import com.example.familytracking.core.common.Resource
+import com.example.familytracking.core.utils.SecurityUtils
 import com.example.familytracking.data.local.dao.UserDao
 import com.example.familytracking.data.local.entity.UserEntity
 import com.example.familytracking.domain.model.User
@@ -23,30 +25,52 @@ class UserRepositoryImpl @Inject constructor(
             .map { it?.toDomain() }
     }
 
-    override suspend fun login(email: String, password: String): User? {
-        return userDao.getUserByCredentials(email, password)?.toDomain()
-    }
-
-    override suspend fun register(name: String, email: String, password: String): User {
-        val existing = userDao.getUserByEmail(email)
-        if (existing != null) {
-            throw Exception("Email already registered")
+    override suspend fun login(email: String, password: String): Resource<User> {
+        return try {
+            val hashedPassword = SecurityUtils.hashPassword(password)
+            val entity = userDao.getUserByCredentials(email, hashedPassword)
+            if (entity != null) {
+                Resource.Success(entity.toDomain())
+            } else {
+                Resource.Error("Invalid email or password")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "An unknown error occurred")
         }
-        val id = UUID.randomUUID().toString()
-        val entity = UserEntity(id, name, email, password)
-        userDao.insertUser(entity)
-        return entity.toDomain()
     }
 
-    override suspend fun updateProfile(user: User) {
-        val existing = userDao.getUserEntityById(user.id)
-            ?: throw Exception("User not found")
-        
-        val updatedEntity = existing.copy(
-            name = user.name,
-            email = user.email
-            // Password remains from existing
-        )
-        userDao.insertUser(updatedEntity)
+    override suspend fun register(name: String, email: String, password: String): Resource<User> {
+        return try {
+            val existing = userDao.getUserByEmail(email)
+            if (existing != null) {
+                return Resource.Error("Email already registered")
+            }
+            val id = UUID.randomUUID().toString()
+            val hashedPassword = SecurityUtils.hashPassword(password)
+            val entity = UserEntity(id, name, email, hashedPassword)
+            userDao.insertUser(entity)
+            Resource.Success(entity.toDomain())
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Registration failed")
+        }
+    }
+
+    override suspend fun updateProfile(user: User): Resource<Unit> {
+        return try {
+            val existing = userDao.getUserEntityById(user.id)
+            if (existing == null) {
+                return Resource.Error("User not found")
+            }
+            
+            val updatedEntity = existing.copy(
+                name = user.name,
+                email = user.email
+                // Password remains hashed from existing entity
+            )
+            userDao.insertUser(updatedEntity)
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Update failed")
+        }
     }
 }

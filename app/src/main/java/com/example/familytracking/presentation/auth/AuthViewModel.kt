@@ -2,6 +2,7 @@ package com.example.familytracking.presentation.auth
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import com.example.familytracking.core.common.Resource
 import com.example.familytracking.domain.usecase.LoginUseCase
 import com.example.familytracking.domain.usecase.RegisterUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,11 +22,10 @@ class AuthViewModel @Inject constructor(
     fun login(email: String, password: String) {
         screenModelScope.launch {
             _state.value = AuthState.Loading
-            try {
-                loginUseCase(email, password)
-                _state.value = AuthState.Success
-            } catch (e: Exception) {
-                _state.value = AuthState.Error(e.message ?: "Login failed")
+            when (val result = loginUseCase(email, password)) {
+                is Resource.Success -> _state.value = AuthState.Success
+                is Resource.Error -> _state.value = AuthState.Error(result.message)
+                else -> {}
             }
         }
     }
@@ -33,11 +33,10 @@ class AuthViewModel @Inject constructor(
     fun register(name: String, email: String, password: String) {
         screenModelScope.launch {
             _state.value = AuthState.Loading
-            try {
-                registerUseCase(name, email, password)
-                _state.value = AuthState.Success
-            } catch (e: Exception) {
-                _state.value = AuthState.Error(e.message ?: "Registration failed")
+            when (val result = registerUseCase(name, email, password)) {
+                is Resource.Success -> _state.value = AuthState.Success
+                is Resource.Error -> _state.value = AuthState.Error(result.message)
+                else -> {}
             }
         }
     }
