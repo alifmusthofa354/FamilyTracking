@@ -3,6 +3,7 @@ package com.example.familytracking.presentation.components
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,56 +27,75 @@ fun OSMMapView(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     
-    // Remember the MapView instance so it's not recreated on recomposition
+    // 1. Create MapView Instance
     val mapView = remember {
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
-            
-            // Default View Point (will be overridden if location enabled)
             controller.setZoom(18.0)
             controller.setCenter(GeoPoint(-6.2088, 106.8456)) 
         }
     }
 
-    // Handle User Location Overlay
-    // Use LaunchedEffect to update overlay when permission state or userIcon changes
-    androidx.compose.runtime.LaunchedEffect(enableUserLocation, userIcon) {
-        if (enableUserLocation) {
-            val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), mapView)
-            locationOverlay.enableMyLocation()
-            locationOverlay.enableFollowLocation() // Auto-center map on user
-            
-            if (userIcon != null) {
-                locationOverlay.setPersonIcon(userIcon)
-                locationOverlay.setDirectionIcon(userIcon)
-                
-                // Set Anchor to Bottom Center because we added a Pin/Triangle pointer
-                // The Hotspot coordinates are in pixels relative to the bitmap
-                // X = Center, Y = Bottom
-                locationOverlay.setPersonHotspot(userIcon.width / 2f, userIcon.height.toFloat())
+    // 2. Create Location Overlay Instance (Persist across recompositions)
+    val locationOverlay = remember(mapView) {
+        MyLocationNewOverlay(GpsMyLocationProvider(context), mapView).apply {
+            enableFollowLocation() // Auto-center map on user movement
+            runOnFirstFix {
+                // Optional: Code to run when first location is fixed
             }
+        }
+    }
+
+    // 3. Update Overlay Icons when Bitmap changes
+    LaunchedEffect(userIcon) {
+        if (userIcon != null) {
+            locationOverlay.setPersonIcon(userIcon)
+            locationOverlay.setDirectionIcon(userIcon)
             
-            // Remove existing location overlays to prevent duplicates
-            mapView.overlays.removeAll { it is MyLocationNewOverlay }
-            mapView.overlays.add(locationOverlay)
+            // Set Hotspot to Bottom Center for Pin accuracy
+            locationOverlay.setPersonHotspot(userIcon.width / 2f, userIcon.height.toFloat())
+            
             mapView.invalidate()
         }
     }
 
-    // Handle Lifecycle (Resume/Pause)
-    DisposableEffect(lifecycleOwner) {
+    // 4. Manage Lifecycle & Permission Logic
+    // This effect runs whenever 'enableUserLocation' changes OR lifecycle events happen
+    DisposableEffect(lifecycleOwner, enableUserLocation) {
+        // Add overlay if not present
+        if (!mapView.overlays.contains(locationOverlay)) {
+            mapView.overlays.add(locationOverlay)
+        }
+
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_RESUME -> {
+                    mapView.onResume()
+                    if (enableUserLocation) {
+                        locationOverlay.enableMyLocation()
+                        locationOverlay.enableFollowLocation()
+                    }
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    mapView.onPause()
+                    // Stop GPS tracking to save battery
+                    locationOverlay.disableMyLocation()
+                }
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
 
+        // Trigger initial state immediately (for first composition)
+        if (enableUserLocation) {
+            locationOverlay.enableMyLocation()
+            locationOverlay.enableFollowLocation()
+        }
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            locationOverlay.disableMyLocation()
         }
     }
 
