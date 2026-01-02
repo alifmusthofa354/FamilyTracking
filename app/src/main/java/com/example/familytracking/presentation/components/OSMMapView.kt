@@ -1,5 +1,6 @@
 package com.example.familytracking.presentation.components
 
+import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -19,6 +20,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 fun OSMMapView(
     modifier: Modifier = Modifier,
     enableUserLocation: Boolean = false,
+    userIcon: Bitmap? = null,
     onMapReady: (MapView) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -37,12 +39,20 @@ fun OSMMapView(
     }
 
     // Handle User Location Overlay
-    // Use LaunchedEffect to update overlay when permission state changes
-    androidx.compose.runtime.LaunchedEffect(enableUserLocation) {
+    // Use LaunchedEffect to update overlay when permission state or userIcon changes
+    androidx.compose.runtime.LaunchedEffect(enableUserLocation, userIcon) {
         if (enableUserLocation) {
             val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), mapView)
             locationOverlay.enableMyLocation()
             locationOverlay.enableFollowLocation() // Auto-center map on user
+            
+            if (userIcon != null) {
+                locationOverlay.setPersonIcon(userIcon)
+                locationOverlay.setDirectionIcon(userIcon) // Use same icon for direction or separate arrow
+            }
+            
+            // Remove existing location overlays to prevent duplicates
+            mapView.overlays.removeAll { it is MyLocationNewOverlay }
             mapView.overlays.add(locationOverlay)
             mapView.invalidate()
         }
@@ -61,9 +71,6 @@ fun OSMMapView(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            // Don't detach entirely here as it might be needed for back navigation state,
-            // but osmdroid recommends onDetach if strictly leaving.
-            // For simple usage, onPause is enough to stop tile loading.
         }
     }
 
