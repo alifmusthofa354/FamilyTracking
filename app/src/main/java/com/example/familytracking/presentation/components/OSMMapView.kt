@@ -48,7 +48,12 @@ fun OSMMapView(
             
             if (userIcon != null) {
                 locationOverlay.setPersonIcon(userIcon)
-                locationOverlay.setDirectionIcon(userIcon) // Use same icon for direction or separate arrow
+                locationOverlay.setDirectionIcon(userIcon)
+                
+                // Set Anchor to Bottom Center because we added a Pin/Triangle pointer
+                // The Hotspot coordinates are in pixels relative to the bitmap
+                // X = Center, Y = Bottom
+                locationOverlay.setPersonHotspot(userIcon.width / 2f, userIcon.height.toFloat())
             }
             
             // Remove existing location overlays to prevent duplicates

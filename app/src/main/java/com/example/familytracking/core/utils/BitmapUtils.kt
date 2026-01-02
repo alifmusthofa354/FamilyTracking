@@ -48,7 +48,38 @@ object BitmapUtils {
             Bitmap.createScaledBitmap(it, sizePx, sizePx, false) 
         } ?: return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
 
-        return getCircularBitmap(scaledBitmap)
+        val circularBitmap = getCircularBitmap(scaledBitmap)
+        return addTrianglePointer(circularBitmap)
+    }
+
+    private fun addTrianglePointer(bitmap: Bitmap): Bitmap {
+        val pointerHeight = bitmap.height / 4
+        val totalHeight = bitmap.height + pointerHeight
+        val output = Bitmap.createBitmap(bitmap.width, totalHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+
+        // Draw the circular image at the top
+        canvas.drawBitmap(bitmap, 0f, 0f, null)
+
+        // Draw the triangle pointer at the bottom
+        val paint = Paint()
+        paint.color = Color.WHITE // Match border color
+        paint.style = Paint.Style.FILL
+        paint.isAntiAlias = true
+
+        val path = android.graphics.Path()
+        val centerX = bitmap.width / 2f
+        val bottomY = bitmap.height.toFloat()
+        
+        // Triangle points
+        path.moveTo(centerX - (pointerHeight / 1.5f), bottomY - 5f) // Top Left of triangle (overlapped slightly)
+        path.lineTo(centerX + (pointerHeight / 1.5f), bottomY - 5f) // Top Right of triangle
+        path.lineTo(centerX, totalHeight.toFloat()) // Bottom Tip
+        path.close()
+
+        canvas.drawPath(path, paint)
+
+        return output
     }
 
     private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
