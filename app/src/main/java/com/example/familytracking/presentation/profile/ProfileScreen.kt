@@ -36,7 +36,9 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
 
     LaunchedEffect(state) {
         if (state is UserState.LoggedOut) {
-            navigator.replaceAll(LoginScreen())
+            // We are inside a TabNavigator, so 'navigator' refers to the TabNavigator.
+            // We need to access the parent (Root Navigator) to replace the MainScreen.
+            navigator.parent?.replaceAll(LoginScreen())
         }
     }
 

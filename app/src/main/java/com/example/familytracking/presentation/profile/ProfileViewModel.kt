@@ -20,6 +20,8 @@ class ProfileViewModel @Inject constructor(
 
     private val _userState = MutableStateFlow<UserState>(UserState.Loading)
     val userState: StateFlow<UserState> = _userState.asStateFlow()
+    
+    private var isLoggingOut = false
 
     init {
         loadUserProfile()
@@ -30,23 +32,26 @@ class ProfileViewModel @Inject constructor(
             _userState.value = UserState.Loading
             try {
                 getUserUseCase().collect { user ->
+                    if (isLoggingOut) return@collect
+
                     if (user != null) {
                         // Preserve isEditing state if possible, or reset to false
                         val currentEditing = (_userState.value as? UserState.Success)?.isEditing ?: false
                         _userState.value = UserState.Success(user, currentEditing)
                     } else {
-                        // If no user found via session (or session cleared), we might reach here
-                         // If session is cleared, GetUserUseCase should return null.
                         _userState.value = UserState.Empty
                     }
                 }
             } catch (e: Exception) {
-                _userState.value = UserState.Error(e.message ?: "Unknown error")
+                if (!isLoggingOut) {
+                    _userState.value = UserState.Error(e.message ?: "Unknown error")
+                }
             }
         }
     }
 
     fun logout() {
+        isLoggingOut = true
         screenModelScope.launch {
             clearSessionUseCase()
             _userState.value = UserState.LoggedOut
