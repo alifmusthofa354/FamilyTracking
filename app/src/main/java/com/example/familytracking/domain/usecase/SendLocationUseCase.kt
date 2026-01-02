@@ -1,22 +1,20 @@
 package com.example.familytracking.domain.usecase
 
-import com.example.familytracking.data.remote.SocketService
+import com.example.familytracking.domain.repository.RealtimeTrackingRepository
 import javax.inject.Inject
 
 class SendLocationUseCase @Inject constructor(
-    private val socketService: SocketService
+    private val repository: RealtimeTrackingRepository
 ) {
-    // We can also add connect/disconnect methods here or separate use cases
-    
     fun connect() {
-        socketService.connect()
+        repository.connect()
     }
 
     fun disconnect() {
-        socketService.disconnect()
+        repository.disconnect()
     }
 
     operator fun invoke(id: String, name: String, lat: Double, lng: Double) {
-        socketService.sendLocation(id, name, lat, lng)
+        repository.sendLocation(id, name, lat, lng)
     }
 }
