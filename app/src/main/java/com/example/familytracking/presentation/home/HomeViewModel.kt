@@ -3,9 +3,11 @@ package com.example.familytracking.presentation.home
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.example.familytracking.domain.model.LocationModel
+import com.example.familytracking.domain.model.RemoteUser
 import com.example.familytracking.domain.model.User
 import com.example.familytracking.domain.usecase.GetLocationUpdatesUseCase
 import com.example.familytracking.domain.usecase.GetUserUseCase
+import com.example.familytracking.domain.usecase.ObserveRemoteUsersUseCase
 import com.example.familytracking.domain.usecase.SendLocationUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +19,15 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getUserUseCase: GetUserUseCase,
     private val getLocationUpdatesUseCase: GetLocationUpdatesUseCase,
-    private val sendLocationUseCase: SendLocationUseCase
+    private val sendLocationUseCase: SendLocationUseCase,
+    private val observeRemoteUsersUseCase: ObserveRemoteUsersUseCase
 ) : ScreenModel {
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+
+    private val _remoteUsers = MutableStateFlow<List<RemoteUser>>(emptyList())
+    val remoteUsers: StateFlow<List<RemoteUser>> = _remoteUsers.asStateFlow()
 
     private val _currentLocation = MutableStateFlow<LocationModel?>(null)
     val currentLocation: StateFlow<LocationModel?> = _currentLocation.asStateFlow()
@@ -34,12 +40,21 @@ class HomeViewModel @Inject constructor(
     init {
         fetchUser()
         sendLocationUseCase.connect() // Connect to socket
+        observeRemoteUsers()
     }
 
     private fun fetchUser() {
         screenModelScope.launch {
             getUserUseCase().collect { user ->
                 _currentUser.value = user
+            }
+        }
+    }
+
+    private fun observeRemoteUsers() {
+        screenModelScope.launch {
+            observeRemoteUsersUseCase().collect { users ->
+                _remoteUsers.value = users
             }
         }
     }

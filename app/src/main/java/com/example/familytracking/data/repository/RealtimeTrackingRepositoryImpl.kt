@@ -1,7 +1,9 @@
 package com.example.familytracking.data.repository
 
 import com.example.familytracking.data.remote.SocketService
+import com.example.familytracking.domain.model.RemoteUser
 import com.example.familytracking.domain.repository.RealtimeTrackingRepository
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class RealtimeTrackingRepositoryImpl @Inject constructor(
@@ -18,5 +20,9 @@ class RealtimeTrackingRepositoryImpl @Inject constructor(
 
     override fun sendLocation(id: String, name: String, lat: Double, lng: Double) {
         socketService.sendLocation(id, name, lat, lng)
+    }
+
+    override fun observeRemoteUsers(): Flow<List<RemoteUser>> {
+        return socketService.remoteUsers
     }
 }

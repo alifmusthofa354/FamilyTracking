@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.familytracking.domain.model.LocationModel
+import com.example.familytracking.domain.model.RemoteUser
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -23,6 +24,7 @@ fun OSMMapView(
     modifier: Modifier = Modifier,
     userLocation: LocationModel? = null,
     userIcon: Bitmap? = null,
+    remoteUsers: List<RemoteUser> = emptyList(),
     isFollowingUser: Boolean = true,
     onMapInteraction: () -> Unit = {},
     onMapReady: (MapView) -> Unit = {}
@@ -51,7 +53,7 @@ fun OSMMapView(
         }
     }
 
-    // 2. Create Marker Instance
+    // 2. Create Marker Instance for Self
     val userMarker = remember(mapView) {
         Marker(mapView).apply {
             title = "Me"
@@ -59,14 +61,13 @@ fun OSMMapView(
         }
     }
 
-    // 3. Update Marker Position & Icon with Conditional Camera Animation
-    LaunchedEffect(userLocation, userIcon, isFollowingUser) {
-        // Update Icon
+    // 3. Update Markers
+    LaunchedEffect(userLocation, userIcon, isFollowingUser, remoteUsers) {
+        // --- Update Self Marker ---
         if (userIcon != null) {
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
         }
 
-        // Update Position
         if (userLocation != null) {
             val point = GeoPoint(userLocation.latitude, userLocation.longitude)
             userMarker.position = point
@@ -81,6 +82,27 @@ fun OSMMapView(
             }
         } else {
             mapView.overlays.remove(userMarker)
+        }
+
+        // --- Update Remote Users Markers ---
+        // Clean up old remote markers first (simple approach: remove all markers except self)
+        // In a more optimized version, we would update existing markers by ID
+        mapView.overlays.removeAll { it is Marker && it != userMarker }
+        
+        // Re-add self marker if it was removed
+        if (userLocation != null && !mapView.overlays.contains(userMarker)) {
+            mapView.overlays.add(userMarker)
+        }
+
+        remoteUsers.forEach { remoteUser ->
+            val remoteMarker = Marker(mapView).apply {
+                position = GeoPoint(remoteUser.latitude, remoteUser.longitude)
+                title = remoteUser.name
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                // Use default icon or a different color for remote users
+                // icon = ... 
+            }
+            mapView.overlays.add(remoteMarker)
         }
         
         mapView.invalidate()

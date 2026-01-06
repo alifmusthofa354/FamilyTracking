@@ -37,6 +37,7 @@ fun HomeScreen(viewModel: HomeViewModel) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val currentLocation by viewModel.currentLocation.collectAsState()
+    val remoteUsers by viewModel.remoteUsers.collectAsState()
     val isFollowingUser by viewModel.isFollowingUser.collectAsState()
     
     // Load Profile Bitmap
@@ -85,6 +86,7 @@ fun HomeScreen(viewModel: HomeViewModel) {
             modifier = Modifier.fillMaxSize(),
             userLocation = currentLocation,
             userIcon = userMarkerBitmap,
+            remoteUsers = remoteUsers,
             isFollowingUser = isFollowingUser,
             onMapInteraction = { viewModel.stopFollowingUser() }
         )
