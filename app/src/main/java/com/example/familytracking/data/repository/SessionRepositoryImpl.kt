@@ -15,6 +15,7 @@ class SessionRepositoryImpl @Inject constructor(
 
     private object PreferencesKeys {
         val USER_ID = stringPreferencesKey("user_id")
+        val TOKEN = stringPreferencesKey("auth_token")
     }
 
     override val userId: Flow<String?> = dataStore.data
@@ -22,15 +23,22 @@ class SessionRepositoryImpl @Inject constructor(
             preferences[PreferencesKeys.USER_ID]
         }
 
-    override suspend fun saveSession(userId: String) {
+    override val token: Flow<String?> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.TOKEN]
+        }
+
+    override suspend fun saveSession(userId: String, token: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_ID] = userId
+            preferences[PreferencesKeys.TOKEN] = token
         }
     }
 
     override suspend fun clearSession() {
         dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.USER_ID)
+            preferences.remove(PreferencesKeys.TOKEN)
         }
     }
 }

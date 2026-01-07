@@ -12,9 +12,12 @@ class LoginUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(email: String, password: String): Resource<User> {
         val result = userRepository.login(email, password)
-        if (result is Resource.Success) {
-            sessionRepository.saveSession(result.data.id)
+        return if (result is Resource.Success) {
+            val (user, token) = result.data
+            sessionRepository.saveSession(user.id, token)
+            Resource.Success(user)
+        } else {
+            Resource.Error((result as Resource.Error).message)
         }
-        return result
     }
 }

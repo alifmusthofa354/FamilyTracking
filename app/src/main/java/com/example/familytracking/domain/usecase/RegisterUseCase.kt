@@ -12,9 +12,6 @@ class RegisterUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(name: String, email: String, password: String): Resource<User> {
         val result = userRepository.register(name, email, password)
-        if (result is Resource.Success) {
-            sessionRepository.saveSession(result.data.id)
-        }
         return result
     }
 }

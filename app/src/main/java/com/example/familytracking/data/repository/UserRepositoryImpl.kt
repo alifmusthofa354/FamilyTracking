@@ -1,78 +1,75 @@
 package com.example.familytracking.data.repository
 
 import com.example.familytracking.core.common.Resource
-import com.example.familytracking.core.utils.SecurityUtils
 import com.example.familytracking.data.local.dao.UserDao
-import com.example.familytracking.data.local.entity.UserEntity
+import com.example.familytracking.data.remote.RemoteAuthDataSource
+import com.example.familytracking.data.remote.model.LoginRequest
+import com.example.familytracking.data.remote.model.RegisterRequest
 import com.example.familytracking.domain.model.User
 import com.example.familytracking.domain.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val remoteDataSource: RemoteAuthDataSource
 ) : UserRepository {
     override fun getUserProfile(): Flow<User?> {
-        // Fallback for compatibility, though usually we should use ID
-        return userDao.getUser()
-            .map { it?.toDomain() }
+        return userDao.getUser().map { it?.toDomain() }
     }
 
     override fun getUserProfileById(userId: String): Flow<User?> {
-        return userDao.getUserById(userId)
-            .map { it?.toDomain() }
+        return userDao.getUserById(userId).map { it?.toDomain() }
     }
 
-    override suspend fun login(email: String, password: String): Resource<User> {
-        return try {
-            val hashedPassword = SecurityUtils.hashPassword(password)
-            val entity = userDao.getUserByCredentials(email, hashedPassword)
-            if (entity != null) {
-                Resource.Success(entity.toDomain())
-            } else {
-                Resource.Error("Invalid email or password")
+    override suspend fun login(email: String, password: String): Resource<Pair<User, String>> {
+        val request = LoginRequest(email, password)
+        return when (val result = remoteDataSource.login(request)) {
+            is Resource.Success -> {
+                val userDto = result.data.user
+                val token = result.data.token
+                
+                if (userDto != null && token != null) {
+                    // Save to Cache (Room)
+                    userDao.insertUser(userDto.toEntity())
+                    Resource.Success(Pair(userDto.toDomain(), token))
+                } else {
+                    Resource.Error("Invalid response from server")
+                }
             }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "An unknown error occurred")
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading
         }
     }
 
     override suspend fun register(name: String, email: String, password: String): Resource<User> {
-        return try {
-            val existing = userDao.getUserByEmail(email)
-            if (existing != null) {
-                return Resource.Error("Email already registered")
+        val request = RegisterRequest(name, email, password)
+        return when (val result = remoteDataSource.register(request)) {
+            is Resource.Success -> {
+                val userDto = result.data.user
+                if (userDto != null) {
+                    Resource.Success(userDto.toDomain())
+                } else {
+                    Resource.Error("Registration successful but no user data returned")
+                }
             }
-            val id = UUID.randomUUID().toString()
-            val hashedPassword = SecurityUtils.hashPassword(password)
-            val entity = UserEntity(
-                id = id, 
-                name = name, 
-                email = email, 
-                password = hashedPassword,
-                profilePicturePath = null
-            )
-            userDao.insertUser(entity)
-            Resource.Success(entity.toDomain())
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Registration failed")
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading
         }
     }
 
     override suspend fun updateProfile(user: User): Resource<Unit> {
+        // For now, update local only or implement remote update
+        // Assuming local update for this step to focus on Auth
         return try {
             val existing = userDao.getUserEntityById(user.id)
-            if (existing == null) {
-                return Resource.Error("User not found")
-            }
+            if (existing == null) return Resource.Error("User not found locally")
             
             val updatedEntity = existing.copy(
                 name = user.name,
                 email = user.email,
                 profilePicturePath = user.profilePicturePath
-                // Password remains hashed from existing entity
             )
             userDao.insertUser(updatedEntity)
             Resource.Success(Unit)

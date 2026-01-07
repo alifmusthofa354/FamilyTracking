@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SessionRepository {
     val userId: Flow<String?>
-    suspend fun saveSession(userId: String)
+    val token: Flow<String?>
+    suspend fun saveSession(userId: String, token: String)
     suspend fun clearSession()
 }
