@@ -12,6 +12,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.familytracking.R
+import com.example.familytracking.core.utils.BitmapUtils
 import com.example.familytracking.domain.model.LocationModel
 import com.example.familytracking.domain.model.RemoteUser
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -85,8 +87,7 @@ fun OSMMapView(
         }
 
         // --- Update Remote Users Markers ---
-        // Clean up old remote markers first (simple approach: remove all markers except self)
-        // In a more optimized version, we would update existing markers by ID
+        // Clean up old remote markers first
         mapView.overlays.removeAll { it is Marker && it != userMarker }
         
         // Re-add self marker if it was removed
@@ -98,9 +99,18 @@ fun OSMMapView(
             val remoteMarker = Marker(mapView).apply {
                 position = GeoPoint(remoteUser.latitude, remoteUser.longitude)
                 title = remoteUser.name
+                snippet = "Last update: ${java.text.DateFormat.getTimeInstance().format(java.util.Date())}"
+                
+                // Create custom icon with name label
+                val iconWithText = BitmapUtils.createMarkerWithText(
+                    context = context,
+                    path = null, // Future: add remote profile photo path
+                    name = remoteUser.name,
+                    placeholderResId = R.drawable.ic_profile
+                )
+                
+                icon = BitmapDrawable(context.resources, iconWithText)
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                // Use default icon or a different color for remote users
-                // icon = ... 
             }
             mapView.overlays.add(remoteMarker)
         }

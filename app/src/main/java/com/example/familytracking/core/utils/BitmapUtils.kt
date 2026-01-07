@@ -52,6 +52,60 @@ object BitmapUtils {
         return addTrianglePointer(circularBitmap)
     }
 
+    fun createMarkerWithText(context: Context, path: String?, name: String, placeholderResId: Int): Bitmap {
+        val baseMarker = getCircularBitmapFromPath(context, path, placeholderResId, sizeDp = 40)
+        
+        val paint = Paint().apply {
+            color = Color.BLACK
+            textSize = 30f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+            style = Paint.Style.FILL
+        }
+
+        val textBounds = Rect()
+        paint.getTextBounds(name, 0, name.length, textBounds)
+
+        val padding = 10f
+        val labelWidth = textBounds.width() + (padding * 2)
+        val labelHeight = textBounds.height() + (padding * 2)
+        
+        val totalWidth = maxOf(baseMarker.width.toFloat(), labelWidth)
+        val totalHeight = baseMarker.height + labelHeight + 5f
+        
+        val output = Bitmap.createBitmap(totalWidth.toInt(), totalHeight.toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+
+        // Draw Marker in middle horizontally
+        val markerX = (totalWidth - baseMarker.width) / 2f
+        canvas.drawBitmap(baseMarker, markerX, 0f, null)
+
+        // Draw Label Background (Rounded Rect)
+        val rectPaint = Paint().apply {
+            color = Color.WHITE
+            alpha = 200
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        val labelRect = android.graphics.RectF(
+            (totalWidth - labelWidth) / 2f,
+            baseMarker.height.toFloat(),
+            (totalWidth + labelWidth) / 2f,
+            totalHeight
+        )
+        canvas.drawRoundRect(labelRect, 10f, 10f, rectPaint)
+
+        // Draw Text
+        canvas.drawText(
+            name,
+            totalWidth / 2f,
+            baseMarker.height + padding + textBounds.height(),
+            paint
+        )
+
+        return output
+    }
+
     private fun addTrianglePointer(bitmap: Bitmap): Bitmap {
         val pointerHeight = bitmap.height / 4
         val totalHeight = bitmap.height + pointerHeight
