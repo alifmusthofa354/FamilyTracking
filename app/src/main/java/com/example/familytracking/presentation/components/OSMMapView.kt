@@ -31,6 +31,7 @@ fun OSMMapView(
     modifier: Modifier = Modifier,
     userLocation: LocationModel? = null,
     userIcon: Bitmap? = null,
+    currentUserId: String? = null,
     remoteUsers: List<RemoteUser> = emptyList(),
     isFollowingUser: Boolean = true,
     onMapInteraction: () -> Unit = {},
@@ -70,7 +71,7 @@ fun OSMMapView(
     }
 
     // 3. Update Markers
-    LaunchedEffect(userLocation, userIcon, isFollowingUser, remoteUsers) {
+    LaunchedEffect(userLocation, userIcon, isFollowingUser, remoteUsers, currentUserId) {
         // --- Update Self Marker ---
         if (userIcon != null) {
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
@@ -99,7 +100,7 @@ fun OSMMapView(
             mapView.overlays.add(userMarker)
         }
 
-        remoteUsers.forEach { remoteUser ->
+        remoteUsers.filter { it.id != currentUserId }.forEach { remoteUser ->
             val remoteMarker = Marker(mapView).apply {
                 position = GeoPoint(remoteUser.latitude, remoteUser.longitude)
                 title = remoteUser.name

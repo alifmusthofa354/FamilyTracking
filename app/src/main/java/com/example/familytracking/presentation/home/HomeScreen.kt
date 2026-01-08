@@ -106,6 +106,7 @@ fun HomeScreen(viewModel: HomeViewModel) {
             modifier = Modifier.fillMaxSize(),
             userLocation = currentLocation,
             userIcon = userMarkerBitmap,
+            currentUserId = currentUser?.id,
             remoteUsers = remoteUsers,
             isFollowingUser = isFollowingUser,
             onMapInteraction = { viewModel.stopFollowingUser() }
