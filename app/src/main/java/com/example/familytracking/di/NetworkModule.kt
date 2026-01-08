@@ -1,5 +1,6 @@
 package com.example.familytracking.di
 
+import com.example.familytracking.core.common.Config
 import com.example.familytracking.data.remote.AuthInterceptor
 import com.example.familytracking.data.remote.api.AuthApiService
 import dagger.Module
@@ -16,9 +17,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // Update this with your current Ngrok URL
-    private const val BASE_URL = "https://e22469816d81.ngrok-free.app"
-
     @Provides
     @Singleton
     fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
@@ -34,7 +32,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(Config.SERVER_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

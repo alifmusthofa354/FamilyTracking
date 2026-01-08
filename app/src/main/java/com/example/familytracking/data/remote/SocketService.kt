@@ -1,6 +1,7 @@
 package com.example.familytracking.data.remote
 
 import android.util.Log
+import com.example.familytracking.core.common.Config
 import com.example.familytracking.domain.model.RemoteUser
 import io.socket.client.IO
 import io.socket.client.Socket
@@ -16,9 +17,7 @@ import javax.inject.Singleton
 class SocketService @Inject constructor() {
 
     private var socket: Socket? = null
-    // Alamat Ngrok terbaru
-    private val serverUrl = "https://9704a79486e4.ngrok-free.app" 
-
+    
     private val _remoteUsers = MutableStateFlow<List<RemoteUser>>(emptyList())
     val remoteUsers: StateFlow<List<RemoteUser>> = _remoteUsers.asStateFlow()
 
@@ -30,7 +29,7 @@ class SocketService @Inject constructor() {
                     forceNew = true
                     transports = arrayOf("websocket") 
                 }
-                socket = IO.socket(serverUrl, options)
+                socket = IO.socket(Config.SOCKET_URL, options)
             }
 
             socket?.on(Socket.EVENT_CONNECT) {
