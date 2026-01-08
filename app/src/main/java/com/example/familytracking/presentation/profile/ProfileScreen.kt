@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -37,6 +37,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil.compose.AsyncImage
@@ -50,7 +52,6 @@ import java.io.File
 fun ProfileScreen(viewModel: ProfileViewModel) {
     val state by viewModel.userState.collectAsState()
     val navigator = LocalNavigator.currentOrThrow
-    val context = LocalContext.current
 
     LaunchedEffect(state) {
         if (state is UserState.LoggedOut) {
@@ -115,7 +116,7 @@ fun ViewProfileContent(name: String, email: String, profilePath: String?, onEdit
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        ProfileImage(path = profilePath, size = 120.dp)
+        ProfileImage(path = profilePath, name = name, size = 120.dp)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -155,7 +156,6 @@ fun EditProfileContent(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             if (uri != null) {
-                // Save to internal storage immediately to get a path
                 val savedPath = FileStorageUtils.saveImageToInternalStorage(context, uri)
                 if (savedPath != null) {
                     profilePath = savedPath
@@ -178,7 +178,7 @@ fun EditProfileContent(
         Box(modifier = Modifier.clickable { 
             photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }) {
-            ProfileImage(path = profilePath, size = 100.dp, isEditable = true)
+            ProfileImage(path = profilePath, name = initialName, size = 100.dp, isEditable = true)
         }
         Text(text = "Tap to change photo", style = MaterialTheme.typography.labelSmall)
 
@@ -212,35 +212,6 @@ fun EditProfileContent(
 }
 
 @Composable
-fun ProfileImage(path: String?, size: androidx.compose.ui.unit.Dp, isEditable: Boolean = false) {
-    val model = if (path != null) {
-        if (path.startsWith("http")) path else File(path)
-    } else {
-        R.drawable.ic_profile
-    }
-    
-    AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(model)
-            .crossfade(true)
-            .build(),
-        placeholder = painterResource(R.drawable.ic_profile),
-        error = painterResource(R.drawable.ic_profile),
-        contentDescription = "Profile Picture",
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .border(
-                width = if (isEditable) 3.dp else 2.dp, 
-                color = if (isEditable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary, 
-                shape = CircleShape
-            )
-    )
-}
-
-
-@Composable
 fun CreateAccountContent(onCreateAccount: (String, String) -> Unit) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -256,15 +227,7 @@ fun CreateAccountContent(onCreateAccount: (String, String) -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.ic_profile),
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-            contentScale = ContentScale.Crop
-        )
+        ProfileImage(path = null, name = "New", size = 100.dp)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -285,6 +248,58 @@ fun CreateAccountContent(onCreateAccount: (String, String) -> Unit) {
             enabled = name.isNotBlank() && email.isNotBlank()
         ) {
             Text("Create Account")
+        }
+    }
+}
+
+@Composable
+fun ProfileImage(path: String?, name: String, size: androidx.compose.ui.unit.Dp, isEditable: Boolean = false) {
+    if (path != null) {
+        val model = if (path.startsWith("http")) path else File(path)
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(model)
+                .crossfade(true)
+                .build(),
+            placeholder = painterResource(R.drawable.ic_profile),
+            error = painterResource(R.drawable.ic_profile),
+            contentDescription = "Profile Picture",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .border(
+                    width = if (isEditable) 3.dp else 2.dp, 
+                    color = if (isEditable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary, 
+                    shape = CircleShape
+                )
+        )
+    } else {
+        val initial = if (name.isNotEmpty()) name.take(1).uppercase() else "?"
+        val colors = listOf("#F44336", "#E91E63", "#9C27B0", "#673AB7", "#3F51B5", "#2196F3", "#03A6F4", "#00BCD4", "#009688", "#4CAF50", "#8BC34A", "#CDDC39", "#FFEB3B", "#FFC107", "#FF9800", "#FF5722")
+        val colorIndex = Math.abs(name.hashCode()) % colors.size
+        val bgColor = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(colors[colorIndex]))
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(bgColor)
+                .border(
+                    width = if (isEditable) 3.dp else 2.dp, 
+                    color = if (isEditable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary, 
+                    shape = CircleShape
+                )
+        ) {
+            Text(
+                text = initial,
+                color = androidx.compose.ui.graphics.Color.White,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = (size.value * 0.4).sp,
+                    fontWeight = FontWeight.Bold
+                )
+            )
         }
     }
 }
