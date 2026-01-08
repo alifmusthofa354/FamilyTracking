@@ -18,8 +18,8 @@ class RealtimeTrackingRepositoryImpl @Inject constructor(
         socketService.disconnect()
     }
 
-    override fun sendLocation(id: String, name: String, lat: Double, lng: Double) {
-        socketService.sendLocation(id, name, lat, lng)
+    override fun sendLocation(id: String, name: String, lat: Double, lng: Double, photoUrl: String?) {
+        socketService.sendLocation(id, name, lat, lng, photoUrl)
     }
 
     override fun observeRemoteUsers(): Flow<List<RemoteUser>> {

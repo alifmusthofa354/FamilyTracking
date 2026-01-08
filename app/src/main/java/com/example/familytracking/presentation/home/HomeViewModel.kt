@@ -73,7 +73,8 @@ class HomeViewModel @Inject constructor(
                         id = user.id,
                         name = user.name,
                         lat = location.latitude,
-                        lng = location.longitude
+                        lng = location.longitude,
+                        photoUrl = user.profilePicturePath
                     )
                 }
             }

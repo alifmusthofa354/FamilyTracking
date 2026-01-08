@@ -54,7 +54,23 @@ object BitmapUtils {
 
     fun createMarkerWithText(context: Context, path: String?, name: String, placeholderResId: Int): Bitmap {
         val baseMarker = getCircularBitmapFromPath(context, path, placeholderResId, sizeDp = 40)
-        
+        val pointerMarker = addTrianglePointer(baseMarker)
+        return drawTextOnMarker(pointerMarker, name)
+    }
+
+    fun createMarkerWithBitmap(context: Context, bitmap: Bitmap?, name: String, placeholderResId: Int): Bitmap {
+        val sizePx = (40 * context.resources.displayMetrics.density).toInt()
+        val baseBitmap = if (bitmap != null) {
+             val scaled = Bitmap.createScaledBitmap(bitmap, sizePx, sizePx, false)
+             getCircularBitmap(scaled)
+        } else {
+             getCircularBitmapFromPath(context, null, placeholderResId, 40)
+        }
+        val pointerMarker = addTrianglePointer(baseBitmap)
+        return drawTextOnMarker(pointerMarker, name)
+    }
+
+    private fun drawTextOnMarker(baseMarker: Bitmap, name: String): Bitmap {
         val paint = Paint().apply {
             color = Color.BLACK
             textSize = 30f

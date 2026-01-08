@@ -2,6 +2,7 @@ package com.example.familytracking.data.repository
 
 import com.example.familytracking.core.common.Resource
 import com.example.familytracking.data.local.dao.UserDao
+import com.example.familytracking.data.local.entity.UserEntity
 import com.example.familytracking.data.remote.RemoteAuthDataSource
 import com.example.familytracking.data.remote.model.LoginRequest
 import com.example.familytracking.data.remote.model.RegisterRequest
@@ -9,6 +10,7 @@ import com.example.familytracking.domain.model.User
 import com.example.familytracking.domain.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.io.File
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
@@ -31,7 +33,6 @@ class UserRepositoryImpl @Inject constructor(
                 val token = result.data.token
                 
                 if (userDto != null && token != null) {
-                    // Save to Cache (Room)
                     userDao.insertUser(userDto.toEntity())
                     Resource.Success(Pair(userDto.toDomain(), token))
                 } else {
@@ -60,18 +61,34 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateProfile(user: User): Resource<Unit> {
-        // For now, update local only or implement remote update
-        // Assuming local update for this step to focus on Auth
         return try {
+            var finalProfilePath = user.profilePicturePath
+
+            if (user.profilePicturePath != null && !user.profilePicturePath.startsWith("http")) {
+                val file = File(user.profilePicturePath)
+                if (file.exists()) {
+                    when (val uploadResult = remoteDataSource.uploadPhoto(file)) {
+                        is Resource.Success -> {
+                            finalProfilePath = uploadResult.data
+                        }
+                        is Resource.Error -> {
+                            return Resource.Error("Photo upload failed: ${uploadResult.message}")
+                        }
+                        else -> {}
+                    }
+                }
+            }
+
             val existing = userDao.getUserEntityById(user.id)
             if (existing == null) return Resource.Error("User not found locally")
             
             val updatedEntity = existing.copy(
                 name = user.name,
                 email = user.email,
-                profilePicturePath = user.profilePicturePath
+                profilePicturePath = finalProfilePath
             )
             userDao.insertUser(updatedEntity)
+            
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Update failed")

@@ -96,10 +96,11 @@ class SocketService @Inject constructor() {
 
     private fun parseRemoteUser(json: JSONObject): RemoteUser {
         return RemoteUser(
-            id = json.getString("id"),
-            name = json.getString("name"),
-            latitude = json.getDouble("lat"),
-            longitude = json.getDouble("lng")
+            id = json.optString("id"),
+            name = json.optString("name"),
+            latitude = json.optDouble("lat"),
+            longitude = json.optDouble("lng"),
+            profilePictureUrl = json.optString("profilePicturePath").ifEmpty { null }
         )
     }
 
@@ -110,7 +111,7 @@ class SocketService @Inject constructor() {
         _remoteUsers.value = emptyList()
     }
 
-    fun sendLocation(id: String, name: String, lat: Double, lng: Double) {
+    fun sendLocation(id: String, name: String, lat: Double, lng: Double, photoUrl: String?) {
         val currentSocket = socket
         if (currentSocket != null && currentSocket.connected()) {
             val data = JSONObject().apply {
@@ -118,6 +119,9 @@ class SocketService @Inject constructor() {
                 put("name", name)
                 put("lat", lat)
                 put("lng", lng)
+                put("profilePicturePath", photoUrl) // Server uses profilePicturePath? or photoUrl?
+                // Server code uses: users[id] = { ... } from data directly.
+                // Mobile expects to read this later. Let's check RemoteUser model.
             }
             currentSocket.emit("send-location", data)
             Log.d("SocketService", "Location sent: $name ($lat, $lng)")

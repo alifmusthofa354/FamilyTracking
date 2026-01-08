@@ -4,9 +4,12 @@ import com.example.familytracking.data.remote.model.AuthResponse
 import com.example.familytracking.data.remote.model.LoginRequest
 import com.example.familytracking.data.remote.model.RegisterRequest
 import com.example.familytracking.data.remote.model.UserDto
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface AuthApiService {
     
@@ -18,4 +21,8 @@ interface AuthApiService {
 
     @GET("api/users/me")
     suspend fun getProfile(): UserDto
+
+    @Multipart
+    @POST("api/users/upload-photo")
+    suspend fun uploadPhoto(@Part photo: MultipartBody.Part): Map<String, String> // Returns { message, imageUrl }
 }

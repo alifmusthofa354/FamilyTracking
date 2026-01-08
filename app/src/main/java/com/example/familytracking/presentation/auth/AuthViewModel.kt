@@ -34,7 +34,10 @@ class AuthViewModel @Inject constructor(
         screenModelScope.launch {
             _state.value = AuthState.Loading
             when (val result = registerUseCase(name, email, password)) {
-                is Resource.Success -> _state.value = AuthState.Success
+                is Resource.Success -> {
+                    // Registration success, now Auto-Login
+                    login(email, password)
+                }
                 is Resource.Error -> _state.value = AuthState.Error(result.message)
                 else -> {}
             }

@@ -4,5 +4,6 @@ data class RemoteUser(
     val id: String,
     val name: String,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val profilePictureUrl: String? = null
 )

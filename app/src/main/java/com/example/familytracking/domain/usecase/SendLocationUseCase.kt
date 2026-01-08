@@ -14,7 +14,7 @@ class SendLocationUseCase @Inject constructor(
         repository.disconnect()
     }
 
-    operator fun invoke(id: String, name: String, lat: Double, lng: Double) {
-        repository.sendLocation(id, name, lat, lng)
+    operator fun invoke(id: String, name: String, lat: Double, lng: Double, photoUrl: String?) {
+        repository.sendLocation(id, name, lat, lng, photoUrl)
     }
 }
