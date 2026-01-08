@@ -213,7 +213,11 @@ fun EditProfileContent(
 
 @Composable
 fun ProfileImage(path: String?, size: androidx.compose.ui.unit.Dp, isEditable: Boolean = false) {
-    val model = if (path != null) File(path) else R.drawable.ic_profile
+    val model = if (path != null) {
+        if (path.startsWith("http")) path else File(path)
+    } else {
+        R.drawable.ic_profile
+    }
     
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
