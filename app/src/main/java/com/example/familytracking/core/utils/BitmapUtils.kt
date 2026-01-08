@@ -46,13 +46,8 @@ object BitmapUtils {
     }
 
     fun createMarkerWithText(context: Context, path: String?, name: String, placeholderResId: Int): Bitmap {
-        // Note: placeholderResId is kept for signature compatibility but ignored in favor of Initials
-        val baseMarker = getCircularBitmapFromPath(context, path, name, sizeDp = 40)
-        // BaseMarker already has pointer from getCircularBitmapFromPath -> addTrianglePointer
-        // But wait, getCircularBitmapFromPath calls addTrianglePointer at the end.
-        // So baseMarker is ALREADY a pin.
-        // We just need to add text below it.
-        return drawTextOnMarker(baseMarker, name)
+        // Return only the pin marker without label text
+        return getCircularBitmapFromPath(context, path, name, sizeDp = 40)
     }
 
     fun createMarkerWithBitmap(context: Context, bitmap: Bitmap?, name: String, placeholderResId: Int): Bitmap {
@@ -61,11 +56,9 @@ object BitmapUtils {
              val scaled = Bitmap.createScaledBitmap(bitmap, sizePx, sizePx, false)
              getCircularBitmap(scaled)
         } else {
-             // Fallback to initial bitmap (which is circular)
              getInitialBitmap(context, name, 40)
         }
-        val pointerMarker = addTrianglePointer(baseBitmap)
-        return drawTextOnMarker(pointerMarker, name)
+        return addTrianglePointer(baseBitmap)
     }
 
     fun getInitialBitmap(context: Context, name: String, sizeDp: Int): Bitmap {
