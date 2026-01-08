@@ -51,7 +51,14 @@ fun OSMMapView(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(18.0)
-            controller.setCenter(GeoPoint(-6.2088, 106.8456)) 
+            
+            // Use userLocation if available, otherwise default to Jakarta
+            val startPoint = if (userLocation != null) {
+                GeoPoint(userLocation.latitude, userLocation.longitude)
+            } else {
+                GeoPoint(-6.2088, 106.8456)
+            }
+            controller.setCenter(startPoint)
             
             // Detect user interaction to disable auto-follow AND close info windows
             setOnTouchListener { v, event ->
