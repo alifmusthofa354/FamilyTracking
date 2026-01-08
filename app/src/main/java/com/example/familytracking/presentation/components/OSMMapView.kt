@@ -31,6 +31,7 @@ fun OSMMapView(
     modifier: Modifier = Modifier,
     userLocation: LocationModel? = null,
     userIcon: Bitmap? = null,
+    userName: String? = null, // Add userName param
     currentUserId: String? = null,
     remoteUsers: List<RemoteUser> = emptyList(),
     isFollowingUser: Boolean = true,
@@ -71,10 +72,15 @@ fun OSMMapView(
     }
 
     // 3. Update Markers
-    LaunchedEffect(userLocation, userIcon, isFollowingUser, remoteUsers, currentUserId) {
+    LaunchedEffect(userLocation, userIcon, isFollowingUser, remoteUsers, currentUserId, userName) {
         // --- Update Self Marker ---
         if (userIcon != null) {
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
+        }
+        
+        // Update Title if name available
+        if (userName != null) {
+            userMarker.title = userName
         }
 
         if (userLocation != null) {

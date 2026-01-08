@@ -44,8 +44,11 @@ fun HomeScreen(viewModel: HomeViewModel) {
     val isFollowingUser by viewModel.isFollowingUser.collectAsState()
     
     // Load Profile Bitmap (Handle both Local File and Remote URL)
-    val userMarkerBitmap by produceState<Bitmap?>(initialValue = null, currentUser?.profilePicturePath) {
+    // Re-generate bitmap if path OR name changes
+    val userMarkerBitmap by produceState<Bitmap?>(initialValue = null, currentUser?.profilePicturePath, currentUser?.name) {
         val path = currentUser?.profilePicturePath
+        val name = currentUser?.name ?: "Me"
+        
         if (path != null) {
             value = withContext(Dispatchers.IO) {
                 // Use Coil to load image (handles File, Uri, and Url)
@@ -59,15 +62,15 @@ fun HomeScreen(viewModel: HomeViewModel) {
                 val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
                 
                 if (bitmap != null) {
-                    BitmapUtils.createMarkerWithBitmap(context, bitmap, currentUser?.name ?: "Me", R.drawable.ic_profile)
+                    BitmapUtils.createMarkerWithBitmap(context, bitmap, name, R.drawable.ic_profile)
                 } else {
                     // Fallback if Coil fails
-                    BitmapUtils.createMarkerWithText(context, null, currentUser?.name ?: "Me", R.drawable.ic_profile)
+                    BitmapUtils.createMarkerWithText(context, null, name, R.drawable.ic_profile)
                 }
             }
         } else {
             value = withContext(Dispatchers.IO) {
-                BitmapUtils.createMarkerWithText(context, null, currentUser?.name ?: "Me", R.drawable.ic_profile)
+                BitmapUtils.createMarkerWithText(context, null, name, R.drawable.ic_profile)
             }
         }
     }
@@ -106,6 +109,7 @@ fun HomeScreen(viewModel: HomeViewModel) {
             modifier = Modifier.fillMaxSize(),
             userLocation = currentLocation,
             userIcon = userMarkerBitmap,
+            userName = currentUser?.name, // Pass name
             currentUserId = currentUser?.id,
             remoteUsers = remoteUsers,
             isFollowingUser = isFollowingUser,
