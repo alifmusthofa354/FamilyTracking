@@ -5,14 +5,17 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import com.example.familytracking.domain.model.LocationModel
 import com.example.familytracking.domain.model.RemoteUser
 import com.example.familytracking.domain.model.User
+import com.example.familytracking.domain.usecase.GetLastLocationUseCase
 import com.example.familytracking.domain.usecase.GetLocationUpdatesUseCase
 import com.example.familytracking.domain.usecase.GetUserUseCase
 import com.example.familytracking.domain.usecase.ObserveRemoteUsersUseCase
+import com.example.familytracking.domain.usecase.SaveLastLocationUseCase
 import com.example.familytracking.domain.usecase.SendLocationUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,7 +23,9 @@ class HomeViewModel @Inject constructor(
     private val getUserUseCase: GetUserUseCase,
     private val getLocationUpdatesUseCase: GetLocationUpdatesUseCase,
     private val sendLocationUseCase: SendLocationUseCase,
-    private val observeRemoteUsersUseCase: ObserveRemoteUsersUseCase
+    private val observeRemoteUsersUseCase: ObserveRemoteUsersUseCase,
+    private val getLastLocationUseCase: GetLastLocationUseCase,
+    private val saveLastLocationUseCase: SaveLastLocationUseCase
 ) : ScreenModel {
     
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -38,9 +43,20 @@ class HomeViewModel @Inject constructor(
     private var locationJob: Job? = null
 
     init {
+        loadInitialLocation()
         fetchUser()
-        sendLocationUseCase.connect() // Connect to socket
+        sendLocationUseCase.connect()
         observeRemoteUsers()
+    }
+
+    private fun loadInitialLocation() {
+        screenModelScope.launch {
+            // Load cache first
+            val cached = getLastLocationUseCase().first()
+            if (cached != null) {
+                _currentLocation.value = LocationModel(cached.first, cached.second)
+            }
+        }
     }
 
     private fun fetchUser() {
@@ -65,6 +81,9 @@ class HomeViewModel @Inject constructor(
         locationJob = screenModelScope.launch {
             getLocationUpdatesUseCase().collect { location ->
                 _currentLocation.value = location
+                
+                // Save to cache
+                saveLastLocationUseCase(location.latitude, location.longitude)
                 
                 // Send location to server
                 val user = _currentUser.value
@@ -96,6 +115,6 @@ class HomeViewModel @Inject constructor(
 
     override fun onDispose() {
         super.onDispose()
-        sendLocationUseCase.disconnect() // Cleanup socket
+        sendLocationUseCase.disconnect()
     }
 }

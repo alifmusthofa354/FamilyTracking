@@ -5,8 +5,11 @@ import android.graphics.drawable.BitmapDrawable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -79,6 +82,8 @@ fun OSMMapView(
     }
 
     // 3. Update Markers
+    var isFirstMove by remember { androidx.compose.runtime.mutableStateOf(true) }
+
     LaunchedEffect(userLocation, userIcon, isFollowingUser, remoteUsers, currentUserId, userName) {
         // --- Update Self Marker ---
         if (userIcon != null) {
@@ -101,7 +106,12 @@ fun OSMMapView(
             
             // Only animate/follow if enabled
             if (isFollowingUser) {
-                mapView.controller.animateTo(point)
+                if (isFirstMove) {
+                    mapView.controller.setCenter(point)
+                    isFirstMove = false
+                } else {
+                    mapView.controller.animateTo(point)
+                }
             }
         } else {
             mapView.overlays.remove(userMarker)
