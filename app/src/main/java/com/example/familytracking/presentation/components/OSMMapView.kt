@@ -31,7 +31,7 @@ fun OSMMapView(
     modifier: Modifier = Modifier,
     userLocation: LocationModel? = null,
     userIcon: Bitmap? = null,
-    userName: String? = null, // Add userName param
+    userName: String? = null,
     currentUserId: String? = null,
     remoteUsers: List<RemoteUser> = emptyList(),
     isFollowingUser: Boolean = true,
@@ -62,7 +62,7 @@ fun OSMMapView(
                         onMapInteraction()
                     }
                 }
-                false // Let the map handle the touch event (pan/zoom)
+                false // Let the map handle the touch event
             }
         }
     }
@@ -71,8 +71,10 @@ fun OSMMapView(
     val userMarker = remember(mapView) {
         Marker(mapView).apply {
             title = "Me"
-            snippet = "Last update: Now" // Initial snippet
+            snippet = "Last update: Now"
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            // Use custom white info window
+            infoWindow = CustomInfoWindow(R.layout.layout_info_window, mapView)
         }
     }
 
@@ -83,7 +85,7 @@ fun OSMMapView(
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
         }
         
-        // Update Title and Snippet
+        // Update Title if name available
         if (userName != null) {
             userMarker.title = userName
             userMarker.snippet = "Last update: ${java.text.DateFormat.getTimeInstance().format(java.util.Date())}"
@@ -118,6 +120,8 @@ fun OSMMapView(
                 title = remoteUser.name
                 snippet = "Last update: ${java.text.DateFormat.getTimeInstance().format(java.util.Date())}"
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                // Use custom white info window
+                infoWindow = CustomInfoWindow(R.layout.layout_info_window, mapView)
             }
             
             // Default icon
