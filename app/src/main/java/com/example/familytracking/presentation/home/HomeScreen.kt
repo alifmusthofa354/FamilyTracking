@@ -26,6 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.example.familytracking.R
 import com.example.familytracking.core.utils.BitmapUtils
 import com.example.familytracking.presentation.components.OSMMapView
@@ -40,15 +43,32 @@ fun HomeScreen(viewModel: HomeViewModel) {
     val remoteUsers by viewModel.remoteUsers.collectAsState()
     val isFollowingUser by viewModel.isFollowingUser.collectAsState()
     
-    // Load Profile Bitmap
-    val userMarkerBitmap by produceState<Bitmap?>(initialValue = null, currentUser) {
-        value = withContext(Dispatchers.IO) {
-            BitmapUtils.getCircularBitmapFromPath(
-                context = context,
-                path = currentUser?.profilePicturePath,
-                placeholderResId = R.drawable.ic_profile,
-                sizeDp = 48 // Size of the marker
-            )
+    // Load Profile Bitmap (Handle both Local File and Remote URL)
+    val userMarkerBitmap by produceState<Bitmap?>(initialValue = null, currentUser?.profilePicturePath) {
+        val path = currentUser?.profilePicturePath
+        if (path != null) {
+            value = withContext(Dispatchers.IO) {
+                // Use Coil to load image (handles File, Uri, and Url)
+                val loader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(path)
+                    .allowHardware(false) // Crucial for Bitmap manipulation
+                    .build()
+                
+                val result = (loader.execute(request) as? SuccessResult)?.drawable
+                val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                
+                if (bitmap != null) {
+                    BitmapUtils.createMarkerWithBitmap(context, bitmap, currentUser?.name ?: "Me", R.drawable.ic_profile)
+                } else {
+                    // Fallback if Coil fails
+                    BitmapUtils.createMarkerWithText(context, null, currentUser?.name ?: "Me", R.drawable.ic_profile)
+                }
+            }
+        } else {
+            value = withContext(Dispatchers.IO) {
+                BitmapUtils.createMarkerWithText(context, null, currentUser?.name ?: "Me", R.drawable.ic_profile)
+            }
         }
     }
 

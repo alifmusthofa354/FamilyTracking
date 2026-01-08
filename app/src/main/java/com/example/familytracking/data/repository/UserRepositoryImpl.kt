@@ -79,6 +79,17 @@ class UserRepositoryImpl @Inject constructor(
                 }
             }
 
+            // Call Remote Update API
+            val remoteUpdateResult = remoteDataSource.updateProfile(user.name, user.email)
+            if (remoteUpdateResult is Resource.Error) {
+                // Should we abort? Maybe just log/toast, but let's be strict for consistency
+                // return Resource.Error("Remote update failed: ${remoteUpdateResult.message}")
+                // Or proceed with local update optimistically?
+                // Let's return error so user knows server didn't sync
+                return Resource.Error("Remote update failed: ${remoteUpdateResult.message}")
+            }
+
+            // Update Local Cache
             val existing = userDao.getUserEntityById(user.id)
             if (existing == null) return Resource.Error("User not found locally")
             

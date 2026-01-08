@@ -44,9 +44,28 @@ class RemoteAuthDataSource @Inject constructor(
         }
     }
 
+    suspend fun updateProfile(name: String, email: String): Resource<Unit> {
+        return try {
+            // Create map for update body
+            val updateData = mapOf("name" to name, "email" to email)
+            apiService.updateProfile(updateData)
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Update profile failed")
+        }
+    }
+
     suspend fun uploadPhoto(file: File): Resource<String> {
         return try {
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            // Determine MIME type
+            val mimeType = when (file.extension.lowercase()) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "png" -> "image/png"
+                "webp" -> "image/webp"
+                else -> "image/jpeg" // Fallback
+            }
+            
+            val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("photo", file.name, requestFile)
             val response = apiService.uploadPhoto(body)
             val imageUrl = response["imageUrl"]

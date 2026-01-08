@@ -22,6 +22,9 @@ interface AuthApiService {
     @GET("api/users/me")
     suspend fun getProfile(): UserDto
 
+    @retrofit2.http.PUT("api/users/me")
+    suspend fun updateProfile(@Body request: Map<String, String>): Map<String, Any> // Adjust return type based on API
+
     @Multipart
     @POST("api/users/upload-photo")
     suspend fun uploadPhoto(@Part photo: MultipartBody.Part): Map<String, String> // Returns { message, imageUrl }
