@@ -36,29 +36,62 @@ object BitmapUtils {
             }
         }
 
-        if (originalBitmap == null) {
-            return getInitialBitmap(context, name, sizeDp)
+        val baseBitmap = if (originalBitmap == null) {
+            getInitialBitmap(context, name, sizeDp)
+        } else {
+            Bitmap.createScaledBitmap(originalBitmap, sizePx, sizePx, false)
         }
 
-        val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, sizePx, sizePx, false)
-        val circularBitmap = getCircularBitmap(scaledBitmap)
-        return addTrianglePointer(circularBitmap)
+        return createPinMarker(context, baseBitmap)
     }
 
     fun createMarkerWithText(context: Context, path: String?, name: String, placeholderResId: Int): Bitmap {
-        // Return only the pin marker without label text
         return getCircularBitmapFromPath(context, path, name, sizeDp = 40)
     }
 
     fun createMarkerWithBitmap(context: Context, bitmap: Bitmap?, name: String, placeholderResId: Int): Bitmap {
         val sizePx = (40 * context.resources.displayMetrics.density).toInt()
         val baseBitmap = if (bitmap != null) {
-             val scaled = Bitmap.createScaledBitmap(bitmap, sizePx, sizePx, false)
-             getCircularBitmap(scaled)
+             Bitmap.createScaledBitmap(bitmap, sizePx, sizePx, false)
         } else {
              getInitialBitmap(context, name, 40)
         }
-        return addTrianglePointer(baseBitmap)
+        return createPinMarker(context, baseBitmap)
+    }
+
+    private fun createPinMarker(context: Context, contentBitmap: Bitmap): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val strokeWidth = 3 * density
+        val pointerHeight = contentBitmap.height / 3f
+        val totalHeight = contentBitmap.height + pointerHeight + strokeWidth
+        val width = contentBitmap.width + (strokeWidth * 2)
+        
+        val output = Bitmap.createBitmap(width.toInt(), totalHeight.toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        // 1. Draw the "Pin Shell" (Background & Pointer)
+        paint.color = Color.WHITE
+        val centerX = width / 2f
+        val circleCenterY = (contentBitmap.height / 2f) + strokeWidth
+        val circleRadius = (contentBitmap.width / 2f) + strokeWidth
+
+        // Draw Circle of the pin
+        canvas.drawCircle(centerX, circleCenterY, circleRadius, paint)
+
+        // Draw Triangle pointer (seamlessly attached)
+        val path = android.graphics.Path()
+        path.moveTo(centerX - (circleRadius * 0.7f), circleCenterY + (circleRadius * 0.6f)) // Left connection
+        path.lineTo(centerX + (circleRadius * 0.7f), circleCenterY + (circleRadius * 0.6f)) // Right connection
+        path.lineTo(centerX, totalHeight) // Bottom Tip
+        path.close()
+        canvas.drawPath(path, paint)
+
+        // 2. Draw the Image (Circle Cropped) inside the shell
+        val circularImage = getCircularBitmap(contentBitmap)
+        canvas.drawBitmap(circularImage, strokeWidth, strokeWidth, null)
+
+        return output
     }
 
     fun getInitialBitmap(context: Context, name: String, sizeDp: Int): Bitmap {
@@ -67,106 +100,21 @@ object BitmapUtils {
         val canvas = Canvas(output)
         
         val initial = if (name.isNotEmpty()) name.take(1).uppercase() else "?"
-        
         val colors = listOf("#F44336", "#E91E63", "#9C27B0", "#673AB7", "#3F51B5", "#2196F3", "#03A6F4", "#00BCD4", "#009688", "#4CAF50", "#8BC34A", "#CDDC39", "#FFEB3B", "#FFC107", "#FF9800", "#FF5722")
         val colorIndex = Math.abs(name.hashCode()) % colors.size
         val bgColor = Color.parseColor(colors[colorIndex])
 
-        val paint = Paint().apply {
-            isAntiAlias = true
-            color = bgColor
-        }
-
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = bgColor
         canvas.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, paint)
 
-        paint.apply {
-            color = Color.WHITE
-            textSize = sizePx * 0.5f
-            textAlign = Paint.Align.CENTER
-            // typeface = android.graphics.Typeface.DEFAULT_BOLD // Typeface not imported, use default
-        }
-
+        paint.color = Color.WHITE
+        paint.textSize = sizePx * 0.5f
+        paint.textAlign = Paint.Align.CENTER
+        
         val textBounds = Rect()
         paint.getTextBounds(initial, 0, initial.length, textBounds)
-        val textY = (sizePx / 2f) + (textBounds.height() / 2f)
-        
-        canvas.drawText(initial, sizePx / 2f, textY, paint)
-
-        return output
-    }
-
-    private fun addTrianglePointer(bitmap: Bitmap): Bitmap {
-        val pointerHeight = bitmap.height / 4
-        val totalHeight = bitmap.height + pointerHeight
-        val output = Bitmap.createBitmap(bitmap.width, totalHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-
-        canvas.drawBitmap(bitmap, 0f, 0f, null)
-
-        val paint = Paint()
-        paint.color = Color.WHITE 
-        paint.style = Paint.Style.FILL
-        paint.isAntiAlias = true
-
-        val path = android.graphics.Path()
-        val centerX = bitmap.width / 2f
-        val bottomY = bitmap.height.toFloat()
-        
-        path.moveTo(centerX - (pointerHeight / 1.5f), bottomY - 5f) 
-        path.lineTo(centerX + (pointerHeight / 1.5f), bottomY - 5f) 
-        path.lineTo(centerX, totalHeight.toFloat()) 
-        path.close()
-
-        canvas.drawPath(path, paint)
-
-        return output
-    }
-
-    private fun drawTextOnMarker(baseMarker: Bitmap, name: String): Bitmap {
-        val paint = Paint().apply {
-            color = Color.BLACK
-            textSize = 30f
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-            style = Paint.Style.FILL
-        }
-
-        val textBounds = Rect()
-        paint.getTextBounds(name, 0, name.length, textBounds)
-
-        val padding = 10f
-        val labelWidth = textBounds.width() + (padding * 2)
-        val labelHeight = textBounds.height() + (padding * 2)
-        
-        val totalWidth = maxOf(baseMarker.width.toFloat(), labelWidth)
-        val totalHeight = baseMarker.height + labelHeight + 5f
-        
-        val output = Bitmap.createBitmap(totalWidth.toInt(), totalHeight.toInt(), Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
-
-        val markerX = (totalWidth - baseMarker.width) / 2f
-        canvas.drawBitmap(baseMarker, markerX, 0f, null)
-
-        val rectPaint = Paint().apply {
-            color = Color.WHITE
-            alpha = 200
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val labelRect = android.graphics.RectF(
-            (totalWidth - labelWidth) / 2f,
-            baseMarker.height.toFloat(),
-            (totalWidth + labelWidth) / 2f,
-            totalHeight
-        )
-        canvas.drawRoundRect(labelRect, 10f, 10f, rectPaint)
-
-        canvas.drawText(
-            name,
-            totalWidth / 2f,
-            baseMarker.height + padding + textBounds.height(),
-            paint
-        )
+        canvas.drawText(initial, sizePx / 2f, (sizePx / 2f) + (textBounds.height() / 2f), paint)
 
         return output
     }
@@ -174,36 +122,21 @@ object BitmapUtils {
     private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
         val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
-
-        val color = -0xbdbdbe
-        val paint = Paint()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         val rect = Rect(0, 0, bitmap.width, bitmap.height)
 
-        paint.isAntiAlias = true
-        canvas.drawARGB(0, 0, 0, 0)
-        paint.color = color
         canvas.drawCircle(bitmap.width / 2f, bitmap.height / 2f, bitmap.width / 2f, paint)
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         canvas.drawBitmap(bitmap, rect, rect, paint)
-        
-        val borderPaint = Paint()
-        borderPaint.style = Paint.Style.STROKE
-        borderPaint.color = Color.WHITE
-        borderPaint.strokeWidth = 4f
-        borderPaint.isAntiAlias = true
-        canvas.drawCircle(bitmap.width / 2f, bitmap.height / 2f, (bitmap.width / 2f) - 2f, borderPaint)
-
         return output
     }
 
     private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
         val (height: Int, width: Int) = options.outHeight to options.outWidth
         var inSampleSize = 1
-
         if (height > reqHeight || width > reqWidth) {
             val halfHeight: Int = height / 2
             val halfWidth: Int = width / 2
-
             while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
                 inSampleSize *= 2
             }
