@@ -50,15 +50,19 @@ fun OSMMapView(
             controller.setZoom(18.0)
             controller.setCenter(GeoPoint(-6.2088, 106.8456)) 
             
-            // Detect user interaction to disable auto-follow
+            // Detect user interaction to disable auto-follow AND close info windows
             setOnTouchListener { v, event ->
                 when (event.action) {
-                    android.view.MotionEvent.ACTION_DOWN, 
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        // Close any open info windows when map is touched
+                        org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(this)
+                        onMapInteraction()
+                    }
                     android.view.MotionEvent.ACTION_MOVE -> {
                         onMapInteraction()
                     }
                 }
-                false // Let the map handle the touch event
+                false // Let the map handle the touch event (pan/zoom)
             }
         }
     }
@@ -67,6 +71,7 @@ fun OSMMapView(
     val userMarker = remember(mapView) {
         Marker(mapView).apply {
             title = "Me"
+            snippet = "Last update: Now" // Initial snippet
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
     }
@@ -78,9 +83,10 @@ fun OSMMapView(
             userMarker.icon = BitmapDrawable(context.resources, userIcon)
         }
         
-        // Update Title if name available
+        // Update Title and Snippet
         if (userName != null) {
             userMarker.title = userName
+            userMarker.snippet = "Last update: ${java.text.DateFormat.getTimeInstance().format(java.util.Date())}"
         }
 
         if (userLocation != null) {
